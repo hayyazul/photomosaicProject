@@ -1,12 +1,9 @@
 import cv2
 import os
 from os.path import isfile, join
-
 import numpy as np
 
 PICTURES_FOLDER_PATH = "C:/Users/Ayyaz/Pictures/photomosaic palette"
-PICTURE_FILETYPES = ("png", "jpg", "jpeg", "webp")
-
 
 def check_if_file_is_image(file_path):
     image = cv2.imread(file_path)
