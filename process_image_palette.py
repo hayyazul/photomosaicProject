@@ -6,17 +6,28 @@ import numpy as np
 PICTURES_FOLDER_PATH = "C:/Users/Ayyaz/Pictures/photomosaic palette"
 
 def check_if_file_is_image(file_path):
+    """
+    Checks if file is an image or not.
+
+    :param file_path:
+    :return: bool whether the given file path points to an image or not.
+    """
     image = cv2.imread(file_path)
 
     try:
-        dummy = image.shape  # this line will throw the exception
+        dummy = image.shape  # this line will throw an exception if it is not an image.
         return True
     except:
-        print("[INFO] Image is not available or corrupted.")
         return False
 
 
 def convert_pictures_into_arrays(*image_paths):
+    """
+    Takes in paths to images, converts them into np.ndarray
+
+    :param image_paths:
+    :return: list[np.ndarray] where each array is a rgb representation of the picture.
+    """
     picture_arrays = []
     for image_path in image_paths:
         picture_arrays.append(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB))
