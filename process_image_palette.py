@@ -3,6 +3,7 @@ import os
 from os.path import isfile, join, basename, exists
 import shutil
 import numpy as np
+from PIL import Image
 
 PICTURES_FOLDER_PATH = "./photomosaic palette"
 
@@ -60,6 +61,7 @@ class PicturePalette:
         os.mkdir(self.temp_palette_folder_path)
 
         self.picture_average_pixel_values = []
+        self.picture_as_pillow_images = []
         self.picture_arrays = []  # type: list[np.ndarray]
         self.picture_paths = []
         self.original_picture_paths = []
@@ -92,9 +94,14 @@ class PicturePalette:
         :param new_height:
         :return:
         """
+        self.picture_as_pillow_images = []
+
         for palette_image_path, original_image_path in zip(self.picture_paths, self.original_picture_paths):
             os.remove(palette_image_path)
             self.add_picture_to_palette_directory(original_image_path, new_width, new_height)
+            # TODO: Refactoring maybe? Should there be a separate area for non-resizing functions?
+            self.picture_as_pillow_images.append(Image.open(join(self.temp_palette_folder_path,
+                                                                 basename(original_image_path))))
 
         self.picture_arrays = convert_pictures_into_arrays(new_width, new_height, *self.picture_paths)
         self.get_average_pixel_values()
@@ -103,7 +110,7 @@ class PicturePalette:
         raw_picture = cv2.imread(image_path)
         picture_resized = cv2.resize(raw_picture, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
 
-        cv2.imwrite(os.path.join(self.temp_palette_folder_path, basename(image_path)), picture_resized)
+        cv2.imwrite(join(self.temp_palette_folder_path, basename(image_path)), picture_resized)
 
     def get_average_pixel_values(self):
         """
