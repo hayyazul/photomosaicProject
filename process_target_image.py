@@ -143,7 +143,6 @@ class PhotomosaicPainter:
                 image_canvas[i, j] = self.palette.find_picture_closest_to_rgb_value(scaled_down_target_image[i, j])
 
     # TODO: Make everything in height, width format.
-    # TODO: Fix bug where the stitched images have a gap and are rotated 90 degrees.
     def stitch_images_together(self, image_canvas):
         """
         Given an image_canvas with indices corresponding to each picture in the palette, an image is generated
