@@ -11,6 +11,8 @@ class PhotomosaicPainter:
     Creates photo mosaics given a palette, and a target image.
     """
 
+    DEFAULT_WIDTH = 10
+
     def __init__(self, palette_path):
         self.palette = PicturePalette(palette_path)
 
@@ -29,16 +31,49 @@ class PhotomosaicPainter:
         """
 
         target_image = cv2.imread(target_image_path)
+        target_image = cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB)  # Make sure it is in RGB
 
-        # First, resize the palette.
+        # First, make sure width and height are properly defined.
+        width_in_images, height_in_images = (
+            self.define_width_height(target_image.shape, width_in_images, height_in_images))
+
+        # Then, resize the palette.
         self.resize_palette(target_image.shape, width_in_images, height_in_images)
 
-        # Then, resize the target image to the image/height width.
-        target_image.resize((width_in_images, height_in_images))
+        # Then, resize the target image to the height width in images.
+        scaled_img = cv2.resize(target_image, (width_in_images, height_in_images))
 
+        # Create the "canvas," an array to contain the indices of the images whose average pixel value
+        # is closest to the pixel value of the scaled down image.
+        image_canvas = np.zeros((height_in_images, width_in_images), dtype=np.uint8)
+        self.fill_image_canvas(scaled_img, image_canvas)
 
-        # TODO: Find the picture whose avg pixel value is closest for each pixel in the resized image.
+        import matplotlib.pyplot as plt
+
+        plt.imshow(image_canvas)
+        plt.show()
+
         # TODO: Stitch together the palette's pictures to create a final picture.
+
+    def define_width_height(self, target_image_shape, width_in_images=None, height_in_images=None):
+        """
+        If
+
+        :param target_image_shape:
+        :param width_in_images:
+        :param height_in_images:
+        :return:
+        """
+        if width_in_images is None or height_in_images is None:
+            if width_in_images is not None:
+                height_in_images = round(width_in_images * target_image_shape[1] / target_image_shape[0])
+            elif height_in_images is not None:
+                width_in_images = round(height_in_images * target_image_shape[0] / target_image_shape[1])
+            else:
+                width_in_images = self.DEFAULT_WIDTH
+                height_in_images = round(width_in_images * target_image_shape[1] / target_image_shape[0])
+
+        return width_in_images, height_in_images
 
     def resize_palette(self, target_image_shape, width_in_images=None, height_in_images=None):
         """
@@ -48,22 +83,36 @@ class PhotomosaicPainter:
         :param height_in_images:
         :return:
         """
-        DEFAULT_WIDTH = 10
-
-        # First, resize the palette.
-        if width_in_images is None or height_in_images is None:
-            if width_in_images is not None:
-                height_in_images = round(width_in_images * target_image_shape[1] / target_image_shape[0])
-            elif height_in_images is not None:
-                width_in_images = round(height_in_images * target_image_shape[0] / target_image_shape[1])
-            else:
-                width_in_images = DEFAULT_WIDTH
-                height_in_images = round(width_in_images * target_image_shape[1] / target_image_shape[0])
 
         palette_image_dimensions = (
             self.get_palette_image_dimensions(target_image_shape, width_in_images, height_in_images))
 
         self.palette.resize_images(palette_image_dimensions[0], palette_image_dimensions[1])
+
+    def fill_image_canvas(self, scaled_down_target_image: np.ndarray, image_canvas: np.ndarray):
+        """
+        Given an image canvas and a scaled down target image, it fills it with the indices of the pictures whose average
+        pixel value is closest to each pixel in the scaled down target image.
+        :param scaled_down_target_image:
+        :param image_canvas:
+        :return:
+        """
+        if scaled_down_target_image.shape[:2] != image_canvas.shape[:2]:
+            raise Exception("Dimension mismatch between scaled down image and image canvas!")
+
+        for i in range(image_canvas.shape[0]):
+            for j in range(image_canvas.shape[1]):
+                image_canvas[i, j] = self.palette.find_picture_closest_to_rgb_value(scaled_down_target_image[i, j])
+
+    def stitch_images_together(self, image_canvas):
+        """
+        Given an image_canvas with indices corresponding to each picture in the palette, an image is generated
+        by stitching these pictures together.
+
+        :param image_canvas: Array w/ each element corresponding to an index in the palette's selection of pictures.
+        :return:
+        """
+        pass
 
     @staticmethod
     def get_palette_image_dimensions(target_image_dimensions, width_in_images, height_in_images):
@@ -79,4 +128,5 @@ class PhotomosaicPainter:
 
 
 if __name__ == "__main__":
-    pass
+    photomosaic_maker = PhotomosaicPainter(join("./photomosaic palette"))
+    photomosaic_maker.create_photomosaic(join("./Bliss.jpg"))
