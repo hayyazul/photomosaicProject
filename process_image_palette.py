@@ -1,6 +1,6 @@
 import cv2
 import os
-from os.path import isfile, join
+from os.path import isfile, join, basename
 import numpy as np
 
 PICTURES_FOLDER_PATH = "C:/Users/Ayyaz/Pictures/photomosaic palette"
@@ -21,7 +21,7 @@ def check_if_file_is_image(file_path):
         return False
 
 
-def convert_pictures_into_arrays(*image_paths):
+def convert_pictures_into_arrays(width, height, *image_paths):
     """
     Takes in paths to images, converts them into np.ndarray
 
@@ -30,17 +30,26 @@ def convert_pictures_into_arrays(*image_paths):
     """
     picture_arrays = []
     for image_path in image_paths:
-        picture_arrays.append(cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB))
+        raw_picture = cv2.imread(image_path)
+        picture_resized = cv2.resize(raw_picture, (width, height), interpolation=cv2.INTER_LINEAR)
+        picture_in_rgb = cv2.cvtColor(picture_resized, cv2.COLOR_BGR2RGB)
+
+        picture_arrays.append(picture_in_rgb)
 
     return picture_arrays
 
 
 class PicturePalette:
     """
-    Given a filepath, this class collects all the images in it into a single list.
+    Given a filepath, this class collects all the images in it into a single list, creates a temporary file to store
+    resized versions of these images, and has some methods to help with creating a photomosaic.
     """
 
-    def __init__(self, dir_path):
+    def __init__(self, dir_path, picture_width, picture_height):
+
+        # First, make the directory that will contain the resized images.
+        self.temp_palette_folder_path = os.path.join("temp", "palette")
+        os.mkdir(self.temp_palette_folder_path)
 
         self.picture_average_pixel_values = []
         self.picture_arrays = []  # type: list[np.ndarray]
@@ -52,13 +61,20 @@ class PicturePalette:
             path_to_file = join(dir_path, directory_item)
             if isfile(path_to_file):
                 if check_if_file_is_image(path_to_file):
-                    self.picture_paths.append(path_to_file)
+                    self.picture_paths.append(join(self.temp_palette_folder_path, directory_item))
+                    self.add_picture_to_directory(path_to_file, picture_width, picture_height)
 
         if len(self.picture_paths) == 0:
             raise Exception(f"No images found in directory {dir_path}")
 
-        self.picture_arrays = convert_pictures_into_arrays(*self.picture_paths)
+        self.picture_arrays = convert_pictures_into_arrays(picture_width, picture_height, *self.picture_paths)
         self.get_average_pixel_values()
+
+    def add_picture_to_directory(self, image_path, new_width, new_height):
+        raw_picture = cv2.imread(image_path)
+        picture_resized = cv2.resize(raw_picture, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+
+        cv2.imwrite(os.path.join(self.temp_palette_folder_path, basename(image_path)), picture_resized)
 
     def get_average_pixel_values(self):
         """
@@ -83,6 +99,6 @@ class PicturePalette:
 
 
 if __name__ == "__main__":
-    palette = PicturePalette(PICTURES_FOLDER_PATH)
+    palette = PicturePalette(PICTURES_FOLDER_PATH, 100, 100)
     myIndex = palette.find_picture_closest_to_rgb_value(np.array([200, 0, 0]))
     pass
